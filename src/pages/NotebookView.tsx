@@ -1,7 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/services/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useNotes } from '@/hooks/useNotes'
+import toast from 'react-hot-toast'
 import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline'
 
 interface Note {
@@ -15,8 +17,8 @@ interface Note {
 
 export default function NotebookView() {
   const { id: notebookId } = useParams<{ id: string }>()
-  const { user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const { data: notebook, isLoading: notebookLoading } = useQuery({
     queryKey: ['notebook', notebookId],
@@ -35,21 +37,34 @@ export default function NotebookView() {
     enabled: !!notebookId,
   })
 
-  const { data: notes = [], isLoading: notesLoading } = useQuery({
-    queryKey: ['notes', notebookId],
-    queryFn: async () => {
-      if (!notebookId) return []
+  const { notes, isLoading: notesLoading } = useNotes(notebookId)
+
+  const createNoteMutation = useMutation({
+    mutationFn: async (isChecklist: boolean) => {
+      if (!notebookId) throw new Error('Notebook not found')
 
       const { data, error } = await supabase
         .from('notes')
-        .select('*')
-        .eq('notebook_id', notebookId)
-        .order('updated_at', { ascending: false })
+        .insert({
+          notebook_id: notebookId,
+          title: isChecklist ? 'New Checklist' : 'New Note',
+          content: isChecklist ? '[]' : '',
+          is_checklist: isChecklist,
+        })
+        .select()
+        .single()
 
       if (error) throw error
-      return data as Note[]
+      return data
     },
-    enabled: !!notebookId,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['notes', notebookId] })
+      navigate(`/note/${data.id}`)
+      toast.success('Note created!')
+    },
+    onError: () => {
+      toast.error('Failed to create note')
+    },
   })
 
   if (notebookLoading) {
@@ -85,10 +100,24 @@ export default function NotebookView() {
           <h1 className="text-3xl font-bold text-gray-900">{notebook.title}</h1>
           <p className="text-sm text-gray-600 mt-1">{notes.length} notes</p>
         </div>
-        <button className="btn-primary inline-flex items-center">
-          <PlusIcon className="w-5 h-5 mr-2" />
-          New Note
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => createNoteMutation.mutate(false)}
+            disabled={createNoteMutation.isPending}
+            className="btn-secondary inline-flex items-center"
+          >
+            <PlusIcon className="w-5 h-5 mr-2" />
+            Note
+          </button>
+          <button
+            onClick={() => createNoteMutation.mutate(true)}
+            disabled={createNoteMutation.isPending}
+            className="btn-primary inline-flex items-center"
+          >
+            <PlusIcon className="w-5 h-5 mr-2" />
+            Checklist
+          </button>
+        </div>
       </div>
 
       {/* Notes list */}
@@ -112,19 +141,21 @@ export default function NotebookView() {
             <button
               key={note.id}
               onClick={() => navigate(`/note/${note.id}`)}
-              className="card-hover w-full text-left p-4"
+              className="card-hover w-full text-left p-4 group"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{note.title}</h3>
+                  <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                    {note.title || 'Untitled'}
+                  </h3>
                   <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                     {typeof note.content === 'string'
-                      ? note.content
+                      ? note.content.replace(/<[^>]*>/g, '') || 'Empty note'
                       : 'Click to view note'}
                   </p>
                 </div>
-                <span className="ml-4 px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
-                  {note.is_checklist ? 'Checklist' : 'Note'}
+                <span className="ml-4 px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded whitespace-nowrap">
+                  {note.is_checklist ? '✓ Checklist' : '📝 Note'}
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-3">
