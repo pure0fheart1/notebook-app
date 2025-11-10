@@ -1,6 +1,8 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import SearchModal from './SearchModal'
+import { useRealtimeNotebooks } from '@/hooks/useRealtime'
 import {
   BookOpenIcon,
   HomeIcon,
@@ -16,6 +18,23 @@ export default function Layout() {
   const { user, signOut } = useAuth()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  // Enable realtime sync
+  useRealtimeNotebooks()
+
+  // Handle keyboard shortcut for search (Cmd/Ctrl + K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
@@ -119,14 +138,18 @@ export default function Layout() {
 
             {/* Search bar */}
             <div className="flex-1 max-w-2xl mx-4">
-              <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search notes..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="w-full flex items-center justify-between px-4 py-2 border border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors text-left"
+              >
+                <span className="flex items-center">
+                  <MagnifyingGlassIcon className="w-5 h-5 mr-2" />
+                  Search notes...
+                </span>
+                <kbd className="hidden sm:inline-block px-2 py-1 text-xs font-semibold text-gray-400 bg-gray-100 border border-gray-300 rounded">
+                  ⌘K
+                </kbd>
+              </button>
             </div>
 
             {/* Quick actions */}
@@ -143,8 +166,9 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Search Modal */}
+      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   )
 }
-
-// Install Heroicons with: npm install @heroicons/react
