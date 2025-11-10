@@ -277,8 +277,8 @@ export default function NoteEditor() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('checklist_subtasks')
+      const { data: _data, error } = await supabase
+        .from('checklist_subtasks' as any)
         .insert({
           item_id: selectedParentItemId,
           text: newSubtaskText.trim(),
@@ -313,7 +313,7 @@ export default function NoteEditor() {
 
     try {
       const { error } = await supabase
-        .from('checklist_subtasks')
+        .from('checklist_subtasks' as any)
         .update({ checked: !subtask.checked })
         .eq('id', subtaskId)
 
@@ -330,7 +330,7 @@ export default function NoteEditor() {
   const handleDeleteSubtask = async (subtaskId: string) => {
     try {
       const { error } = await supabase
-        .from('checklist_subtasks')
+        .from('checklist_subtasks' as any)
         .delete()
         .eq('id', subtaskId)
 

@@ -25,7 +25,7 @@ export function useChecklistSubtasks(itemId?: string) {
       if (!itemId) return []
 
       const { data, error } = await supabase
-        .from('checklist_subtasks')
+        .from('checklist_subtasks' as any)
         .select('*')
         .eq('item_id', itemId)
         .order('order_index', { ascending: true })
@@ -35,7 +35,7 @@ export function useChecklistSubtasks(itemId?: string) {
         throw error
       }
 
-      return data as ChecklistSubtask[]
+      return data as unknown as ChecklistSubtask[]
     },
     enabled: !!itemId,
     retry: 3,
@@ -58,12 +58,12 @@ export function useChecklistSubtasks(itemId?: string) {
 
       // Get count to determine order_index
       const { count } = await supabase
-        .from('checklist_subtasks')
+        .from('checklist_subtasks' as any)
         .select('*', { count: 'exact', head: true })
         .eq('item_id', itemId)
 
       const { data, error } = await supabase
-        .from('checklist_subtasks')
+        .from('checklist_subtasks' as any)
         .insert({
           item_id: itemId,
           text: trimmedText,
@@ -78,7 +78,7 @@ export function useChecklistSubtasks(itemId?: string) {
         throw error
       }
 
-      return data as ChecklistSubtask
+      return data as unknown as ChecklistSubtask
     },
     onMutate: async ({ itemId, text }) => {
       await queryClient.cancelQueries({ queryKey: ['checklist_subtasks', itemId] })
@@ -139,7 +139,7 @@ export function useChecklistSubtasks(itemId?: string) {
       }
 
       const { data, error } = await supabase
-        .from('checklist_subtasks')
+        .from('checklist_subtasks' as any)
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
@@ -153,7 +153,7 @@ export function useChecklistSubtasks(itemId?: string) {
         throw error
       }
 
-      return data as ChecklistSubtask
+      return data as unknown as ChecklistSubtask
     },
     onMutate: async ({ id, itemId, ...updates }) => {
       await queryClient.cancelQueries({ queryKey: ['checklist_subtasks', itemId] })
@@ -189,8 +189,8 @@ export function useChecklistSubtasks(itemId?: string) {
 
   // Delete a subtask
   const deleteMutation = useMutation({
-    mutationFn: async ({ id, itemId }: { id: string; itemId: string }) => {
-      const { error } = await supabase.from('checklist_subtasks').delete().eq('id', id)
+    mutationFn: async ({ id, itemId: _itemId }: { id: string; itemId: string }) => {
+      const { error } = await supabase.from('checklist_subtasks' as any).delete().eq('id', id)
 
       if (error) {
         logError(error, { component: 'useChecklistSubtasks', action: 'delete', subtaskId: id })
@@ -226,12 +226,12 @@ export function useChecklistSubtasks(itemId?: string) {
 
   // Toggle subtask checked status
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, itemId }: { id: string; itemId: string }) => {
+    mutationFn: async ({ id, itemId: _itemId }: { id: string; itemId: string }) => {
       const subtask = query.data?.find((s) => s.id === id)
       if (!subtask) throw new Error('Subtask not found')
 
       const { data, error } = await supabase
-        .from('checklist_subtasks')
+        .from('checklist_subtasks' as any)
         .update({ checked: !subtask.checked })
         .eq('id', id)
         .select()
@@ -242,7 +242,7 @@ export function useChecklistSubtasks(itemId?: string) {
         throw error
       }
 
-      return data as ChecklistSubtask
+      return data as unknown as ChecklistSubtask
     },
     onMutate: async ({ id, itemId }) => {
       await queryClient.cancelQueries({ queryKey: ['checklist_subtasks', itemId] })
@@ -282,7 +282,7 @@ export function useChecklistSubtasks(itemId?: string) {
       }))
 
       const promises = updates.map(({ id, order_index }) =>
-        supabase.from('checklist_subtasks').update({ order_index }).eq('id', id)
+        supabase.from('checklist_subtasks' as any).update({ order_index }).eq('id', id)
       )
 
       const results = await Promise.all(promises)
@@ -336,7 +336,7 @@ export function useChecklistSubtasks(itemId?: string) {
 
 // Hook to fetch subtasks for multiple items at once (for efficient rendering)
 export function useChecklistSubtasksForItems(itemIds: string[]) {
-  const queryClient = useQueryClient()
+  // queryClient not needed in this hook
 
   const query = useQuery({
     queryKey: ['checklist_subtasks_bulk', itemIds.sort().join(',')],
@@ -344,7 +344,7 @@ export function useChecklistSubtasksForItems(itemIds: string[]) {
       if (itemIds.length === 0) return {}
 
       const { data, error } = await supabase
-        .from('checklist_subtasks')
+        .from('checklist_subtasks' as any)
         .select('*')
         .in('item_id', itemIds)
         .order('order_index', { ascending: true })
@@ -355,7 +355,7 @@ export function useChecklistSubtasksForItems(itemIds: string[]) {
       }
 
       // Group by item_id
-      const grouped = (data as ChecklistSubtask[]).reduce((acc, subtask) => {
+      const grouped = (data as unknown as ChecklistSubtask[]).reduce((acc, subtask) => {
         if (!acc[subtask.item_id]) {
           acc[subtask.item_id] = []
         }
