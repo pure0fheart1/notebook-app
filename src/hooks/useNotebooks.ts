@@ -2,10 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/services/supabase'
 import { useAuth } from './useAuth'
 import toast from 'react-hot-toast'
+import { logError, getUserFriendlyMessage } from '@/services/errorTracking'
 
 export interface Notebook {
   id: string
   title: string
+  user_id: string
   icon?: string | null
   color?: string | null
   order_index: number
@@ -13,6 +15,8 @@ export interface Notebook {
   created_at: string
   updated_at: string
 }
+
+const MAX_TITLE_LENGTH = 100
 
 export function useNotebooks() {
   const { user } = useAuth()
@@ -27,24 +31,67 @@ export function useNotebooks() {
         .from('notebooks')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_archived', false)
         .order('order_index', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        logError(error, {
+          component: 'useNotebooks',
+          action: 'fetchNotebooks',
+          user: { id: user.id, email: user.email }
+        })
+        throw error
+      }
       return data as Notebook[]
     },
     enabled: !!user,
+    staleTime: 60 * 1000, // 1 minute
+    retry: 3,
   })
 
   const createMutation = useMutation({
-    mutationFn: async (title: string) => {
+    mutationFn: async (params: { title: string; icon?: string; color?: string }) => {
       if (!user) throw new Error('User not found')
+
+      const trimmedTitle = params.title.trim()
+
+      // Validation
+      if (!trimmedTitle) {
+        throw new Error('Please enter a notebook title')
+      }
+
+      if (trimmedTitle.length > MAX_TITLE_LENGTH) {
+        throw new Error(`Title must be ${MAX_TITLE_LENGTH} characters or less`)
+      }
+
+      // Check for duplicates in cache
+      const currentNotebooks = queryClient.getQueryData<Notebook[]>(['notebooks', user.id]) || []
+      const isDuplicate = currentNotebooks.some(
+        nb => nb.title.toLowerCase() === trimmedTitle.toLowerCase()
+      )
+
+      if (isDuplicate) {
+        throw new Error('A notebook with this name already exists')
+      }
+
+      // Get latest count from database to avoid race condition
+      const { count, error: countError } = await supabase
+        .from('notebooks')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_archived', false)
+
+      if (countError) throw countError
 
       const { data, error } = await supabase
         .from('notebooks')
         .insert({
           user_id: user.id,
-          title,
-          order_index: query.data?.length || 0,
+          title: trimmedTitle,
+          icon: params.icon || null,
+          color: params.color || null,
+          order_index: count || 0,
+          is_archived: false,
         })
         .select()
         .single()
@@ -52,17 +99,79 @@ export function useNotebooks() {
       if (error) throw error
       return data as Notebook
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notebooks'] })
-      toast.success('Notebook created!')
+    onMutate: async (params) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['notebooks', user?.id] })
+
+      // Snapshot previous value
+      const previousNotebooks = queryClient.getQueryData<Notebook[]>(['notebooks', user?.id])
+
+      // Optimistically update
+      if (user) {
+        const optimisticNotebook: Notebook = {
+          id: `temp-${Date.now()}`,
+          user_id: user.id,
+          title: params.title.trim(),
+          icon: params.icon || null,
+          color: params.color || null,
+          order_index: previousNotebooks?.length || 0,
+          is_archived: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+
+        queryClient.setQueryData<Notebook[]>(
+          ['notebooks', user.id],
+          (old = []) => [...old, optimisticNotebook]
+        )
+      }
+
+      return { previousNotebooks }
     },
-    onError: () => {
-      toast.error('Failed to create notebook')
+    onError: (error: Error, params, context) => {
+      // Rollback on error
+      if (context?.previousNotebooks && user) {
+        queryClient.setQueryData(
+          ['notebooks', user.id],
+          context.previousNotebooks
+        )
+      }
+
+      logError(error, {
+        component: 'useNotebooks',
+        action: 'createNotebook',
+        user: { id: user?.id, email: user?.email },
+        metadata: { title: params.title }
+      })
+
+      const message = getUserFriendlyMessage(error)
+      toast.error(message, {
+        duration: 5000,
+        icon: '❌'
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notebooks', user?.id] })
+      toast.success('Notebook created successfully!', {
+        icon: '✨',
+        duration: 3000,
+      })
     },
   })
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Notebook> & { id: string }) => {
+      if (updates.title) {
+        const trimmedTitle = updates.title.trim()
+        if (!trimmedTitle) {
+          throw new Error('Please enter a notebook title')
+        }
+        if (trimmedTitle.length > MAX_TITLE_LENGTH) {
+          throw new Error(`Title must be ${MAX_TITLE_LENGTH} characters or less`)
+        }
+        updates.title = trimmedTitle
+      }
+
       const { data, error } = await supabase
         .from('notebooks')
         .update(updates)
@@ -73,12 +182,37 @@ export function useNotebooks() {
       if (error) throw error
       return data as Notebook
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notebooks'] })
-      toast.success('Notebook updated!')
+    onMutate: async (updatedNotebook) => {
+      await queryClient.cancelQueries({ queryKey: ['notebooks', user?.id] })
+      const previousNotebooks = queryClient.getQueryData<Notebook[]>(['notebooks', user?.id])
+
+      if (user) {
+        queryClient.setQueryData<Notebook[]>(
+          ['notebooks', user.id],
+          (old = []) => old.map(nb =>
+            nb.id === updatedNotebook.id ? { ...nb, ...updatedNotebook } : nb
+          )
+        )
+      }
+
+      return { previousNotebooks }
     },
-    onError: () => {
-      toast.error('Failed to update notebook')
+    onError: (error: Error, variables, context) => {
+      if (context?.previousNotebooks && user) {
+        queryClient.setQueryData(['notebooks', user.id], context.previousNotebooks)
+      }
+
+      logError(error, {
+        component: 'useNotebooks',
+        action: 'updateNotebook',
+        user: { id: user?.id, email: user?.email }
+      })
+
+      toast.error(getUserFriendlyMessage(error), { duration: 4000 })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notebooks', user?.id] })
+      toast.success('Notebook updated!')
     },
   })
 
@@ -91,12 +225,35 @@ export function useNotebooks() {
 
       if (error) throw error
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notebooks'] })
-      toast.success('Notebook deleted!')
+    onMutate: async (deletedId) => {
+      await queryClient.cancelQueries({ queryKey: ['notebooks', user?.id] })
+      const previousNotebooks = queryClient.getQueryData<Notebook[]>(['notebooks', user?.id])
+
+      if (user) {
+        queryClient.setQueryData<Notebook[]>(
+          ['notebooks', user.id],
+          (old = []) => old.filter(nb => nb.id !== deletedId)
+        )
+      }
+
+      return { previousNotebooks }
     },
-    onError: () => {
-      toast.error('Failed to delete notebook')
+    onError: (error: Error, variables, context) => {
+      if (context?.previousNotebooks && user) {
+        queryClient.setQueryData(['notebooks', user.id], context.previousNotebooks)
+      }
+
+      logError(error, {
+        component: 'useNotebooks',
+        action: 'deleteNotebook',
+        user: { id: user?.id, email: user?.email }
+      })
+
+      toast.error(getUserFriendlyMessage(error), { duration: 4000 })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notebooks', user?.id] })
+      toast.success('Notebook deleted', { icon: '🗑️' })
     },
   })
 
@@ -110,5 +267,6 @@ export function useNotebooks() {
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    maxTitleLength: MAX_TITLE_LENGTH,
   }
 }

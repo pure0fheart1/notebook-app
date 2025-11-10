@@ -32,3 +32,4 @@ dist-ssr
 supabase/.env
 supabase/.env.local
 supabase.txt
+.vercel

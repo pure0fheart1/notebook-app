@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "https://czfwuwqxdmelrglpecoh.supabase.co" | npx vercel env add VITE_SUPABASE_URL production
+echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6Znd1d3F4ZG1lbHJnbHBlY29oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NDAwNjAsImV4cCI6MjA3ODMxNjA2MH0.mhTvvkZDWzLhMEzqQKz9qA3Mkf0ScNZooJkFnvAwylI" | npx vercel env add VITE_SUPABASE_ANON_KEY production

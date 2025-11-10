@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/services/supabase'
 import toast from 'react-hot-toast'
+import { logError, getUserFriendlyMessage } from '@/services/errorTracking'
 
 export interface ChecklistItem {
   id: string
@@ -11,6 +12,8 @@ export interface ChecklistItem {
   created_at: string
   updated_at: string
 }
+
+const MAX_ITEM_LENGTH = 500
 
 export function useChecklistItems(noteId?: string) {
   const queryClient = useQueryClient()
@@ -26,32 +29,89 @@ export function useChecklistItems(noteId?: string) {
         .eq('note_id', noteId)
         .order('order_index', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        logError(error, { component: 'useChecklistItems', action: 'fetch', noteId })
+        throw error
+      }
+
       return data as ChecklistItem[]
     },
     enabled: !!noteId,
+    retry: 3,
+    staleTime: 60000, // 1 minute
   })
 
   const createMutation = useMutation({
     mutationFn: async ({ noteId, text }: { noteId: string; text: string }) => {
+      const trimmedText = text.trim()
+
+      // Validation
+      if (!trimmedText) {
+        throw new Error('Please enter item text')
+      }
+
+      if (trimmedText.length > MAX_ITEM_LENGTH) {
+        throw new Error(`Item text must be ${MAX_ITEM_LENGTH} characters or less`)
+      }
+
+      // Get count to avoid race condition
+      const { count } = await supabase
+        .from('checklist_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('note_id', noteId)
+
       const { data, error } = await supabase
         .from('checklist_items')
         .insert({
           note_id: noteId,
-          text,
-          order_index: query.data?.length || 0,
+          text: trimmedText,
+          order_index: count || 0,
+          checked: false,
         })
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        logError(error, { component: 'useChecklistItems', action: 'create', noteId })
+        throw error
+      }
+
       return data as ChecklistItem
+    },
+    onMutate: async ({ noteId, text }) => {
+      await queryClient.cancelQueries({ queryKey: ['checklist_items', noteId] })
+      const previousItems = queryClient.getQueryData<ChecklistItem[]>([
+        'checklist_items',
+        noteId,
+      ])
+
+      // Optimistically add item
+      const optimisticItem: ChecklistItem = {
+        id: `temp-${Date.now()}`,
+        note_id: noteId,
+        text: text.trim(),
+        checked: false,
+        order_index: previousItems?.length || 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      queryClient.setQueryData<ChecklistItem[]>(
+        ['checklist_items', noteId],
+        (old = []) => [...old, optimisticItem]
+      )
+
+      return { previousItems }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
+      toast.success('Item added!', { icon: '✅' })
     },
-    onError: () => {
-      toast.error('Failed to add checklist item')
+    onError: (error, { noteId }, context) => {
+      if (context?.previousItems) {
+        queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
+      }
+      toast.error(getUserFriendlyMessage(error))
     },
   })
 
@@ -60,46 +120,105 @@ export function useChecklistItems(noteId?: string) {
       id,
       ...updates
     }: Partial<ChecklistItem> & { id: string }) => {
+      // Text validation if updating text
+      if (updates.text !== undefined) {
+        const trimmedText = updates.text.trim()
+        if (!trimmedText) {
+          throw new Error('Please enter item text')
+        }
+        if (trimmedText.length > MAX_ITEM_LENGTH) {
+          throw new Error(`Item text must be ${MAX_ITEM_LENGTH} characters or less`)
+        }
+        updates.text = trimmedText
+      }
+
       const { data, error } = await supabase
         .from('checklist_items')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', id)
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        logError(error, { component: 'useChecklistItems', action: 'update', itemId: id })
+        throw error
+      }
+
       return data as ChecklistItem
+    },
+    onMutate: async ({ id, ...updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['checklist_items', noteId] })
+      const previousItems = queryClient.getQueryData<ChecklistItem[]>([
+        'checklist_items',
+        noteId,
+      ])
+
+      // Optimistically update
+      queryClient.setQueryData<ChecklistItem[]>(
+        ['checklist_items', noteId],
+        (old = []) =>
+          old.map((item) =>
+            item.id === id
+              ? { ...item, ...updates, updated_at: new Date().toISOString() }
+              : item
+          )
+      )
+
+      return { previousItems }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
     },
-    onError: () => {
-      toast.error('Failed to update item')
+    onError: (error, { id }, context) => {
+      if (context?.previousItems) {
+        queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
+      }
+      toast.error(getUserFriendlyMessage(error))
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('checklist_items')
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.from('checklist_items').delete().eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        logError(error, { component: 'useChecklistItems', action: 'delete', itemId: id })
+        throw error
+      }
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['checklist_items', noteId] })
+      const previousItems = queryClient.getQueryData<ChecklistItem[]>([
+        'checklist_items',
+        noteId,
+      ])
+
+      // Optimistically remove
+      queryClient.setQueryData<ChecklistItem[]>(['checklist_items', noteId], (old = []) =>
+        old.filter((item) => item.id !== id)
+      )
+
+      return { previousItems }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
-      toast.success('Item deleted')
+      toast.success('Item deleted!', { icon: '🗑️' })
     },
-    onError: () => {
-      toast.error('Failed to delete item')
+    onError: (error, id, context) => {
+      if (context?.previousItems) {
+        queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
+      }
+      toast.error(getUserFriendlyMessage(error))
     },
   })
 
   const toggleMutation = useMutation({
     mutationFn: async (itemId: string) => {
       const item = query.data?.find((i) => i.id === itemId)
-      if (!item) return
+      if (!item) throw new Error('Item not found')
 
       const { data, error } = await supabase
         .from('checklist_items')
@@ -108,14 +227,38 @@ export function useChecklistItems(noteId?: string) {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        logError(error, { component: 'useChecklistItems', action: 'toggle', itemId })
+        throw error
+      }
+
       return data as ChecklistItem
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
+    onMutate: async (itemId) => {
+      await queryClient.cancelQueries({ queryKey: ['checklist_items', noteId] })
+      const previousItems = queryClient.getQueryData<ChecklistItem[]>([
+        'checklist_items',
+        noteId,
+      ])
+
+      // Optimistically toggle
+      queryClient.setQueryData<ChecklistItem[]>(['checklist_items', noteId], (old = []) =>
+        old.map((item) =>
+          item.id === itemId ? { ...item, checked: !item.checked } : item
+        )
+      )
+
+      return { previousItems }
     },
-    onError: () => {
-      toast.error('Failed to toggle item')
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
+      // Subtle feedback, no toast to avoid spam
+    },
+    onError: (error, itemId, context) => {
+      if (context?.previousItems) {
+        queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
+      }
+      toast.error(getUserFriendlyMessage(error))
     },
   })
 
@@ -127,22 +270,38 @@ export function useChecklistItems(noteId?: string) {
       }))
 
       const promises = updates.map(({ id, order_index }) =>
-        supabase
-          .from('checklist_items')
-          .update({ order_index })
-          .eq('id', id)
+        supabase.from('checklist_items').update({ order_index }).eq('id', id)
       )
 
       const results = await Promise.all(promises)
       const error = results.find((r) => r.error)?.error
 
-      if (error) throw error
+      if (error) {
+        logError(error, { component: 'useChecklistItems', action: 'reorder', noteId })
+        throw error
+      }
+    },
+    onMutate: async (items) => {
+      await queryClient.cancelQueries({ queryKey: ['checklist_items', noteId] })
+      const previousItems = queryClient.getQueryData<ChecklistItem[]>([
+        'checklist_items',
+        noteId,
+      ])
+
+      // Optimistically reorder
+      queryClient.setQueryData<ChecklistItem[]>(['checklist_items', noteId], items)
+
+      return { previousItems }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
+      toast.success('Items reordered!', { icon: '↕️' })
     },
-    onError: () => {
-      toast.error('Failed to reorder items')
+    onError: (error, items, context) => {
+      if (context?.previousItems) {
+        queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
+      }
+      toast.error(getUserFriendlyMessage(error))
     },
   })
 
