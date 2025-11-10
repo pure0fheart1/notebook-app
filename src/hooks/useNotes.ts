@@ -185,7 +185,7 @@ export function useNotes(notebookId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notes', notebookId] })
     },
-    onError: (error, { id }, context) => {
+    onError: (error, { id: _id }, context) => {
       if (context?.previousNotes) {
         queryClient.setQueryData(['notes', notebookId], context.previousNotes)
       }
@@ -217,7 +217,7 @@ export function useNotes(notebookId?: string) {
       queryClient.invalidateQueries({ queryKey: ['notes', notebookId] })
       toast.success('Note deleted!', { icon: '🗑️' })
     },
-    onError: (error, id, context) => {
+    onError: (error, _id, context) => {
       if (context?.previousNotes) {
         queryClient.setQueryData(['notes', notebookId], context.previousNotes)
       }
@@ -263,7 +263,7 @@ export function useNotes(notebookId?: string) {
         icon: data.is_pinned ? '📌' : '📍',
       })
     },
-    onError: (error, noteId, context) => {
+    onError: (error, _noteId, context) => {
       if (context?.previousNotes) {
         queryClient.setQueryData(['notes', notebookId], context.previousNotes)
       }

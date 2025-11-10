@@ -328,7 +328,7 @@ export default function NotebookView() {
         // Notes Grid
         <div className="space-y-3">
           {notes.map((note) => {
-            const noteToDeleteData = notes.find((n) => n.id === noteToDelete)
+            
 
             return (
               <Link

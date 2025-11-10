@@ -67,7 +67,7 @@ export default function NoteEditor() {
     enabled: !!noteId && !isNewNote,
   })
 
-  const { items: checklistItems, addItem, toggleItem, deleteItem, updateItem, isAdding } =
+  const { items: checklistItems, addItem, toggleItem, deleteItem, isAdding } =
     useChecklistItems(isNewNote ? undefined : noteId)
 
   // Initialize form with note data
@@ -511,7 +511,7 @@ export default function NoteEditor() {
             // Checklist items
             <>
               <div className="space-y-2">
-                {checklistItems.map((item, index) => (
+                {checklistItems.map((item) => (
                   <div
                     key={item.id}
                     className="group flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"

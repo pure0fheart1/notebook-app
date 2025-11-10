@@ -3,6 +3,7 @@ export interface ErrorContext {
   component?: string
   action?: string
   metadata?: Record<string, any>
+  [key: string]: any // Allow additional properties
 }
 
 export function logError(

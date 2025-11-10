@@ -140,7 +140,7 @@ export function useNotebooks() {
       logError(error, {
         component: 'useNotebooks',
         action: 'createNotebook',
-        user: { id: user?.id, email: user?.email },
+        user: user ? { id: user.id, email: user.email } : undefined,
         metadata: { title: params.title }
       })
 
@@ -197,7 +197,7 @@ export function useNotebooks() {
 
       return { previousNotebooks }
     },
-    onError: (error: Error, variables, context) => {
+    onError: (error: Error, _variables, context) => {
       if (context?.previousNotebooks && user) {
         queryClient.setQueryData(['notebooks', user.id], context.previousNotebooks)
       }
@@ -205,7 +205,7 @@ export function useNotebooks() {
       logError(error, {
         component: 'useNotebooks',
         action: 'updateNotebook',
-        user: { id: user?.id, email: user?.email }
+        user: user ? { id: user.id, email: user.email } : undefined
       })
 
       toast.error(getUserFriendlyMessage(error), { duration: 4000 })
@@ -238,7 +238,7 @@ export function useNotebooks() {
 
       return { previousNotebooks }
     },
-    onError: (error: Error, variables, context) => {
+    onError: (error: Error, _variables, context) => {
       if (context?.previousNotebooks && user) {
         queryClient.setQueryData(['notebooks', user.id], context.previousNotebooks)
       }
@@ -246,7 +246,7 @@ export function useNotebooks() {
       logError(error, {
         component: 'useNotebooks',
         action: 'deleteNotebook',
-        user: { id: user?.id, email: user?.email }
+        user: user ? { id: user.id, email: user.email } : undefined
       })
 
       toast.error(getUserFriendlyMessage(error), { duration: 4000 })

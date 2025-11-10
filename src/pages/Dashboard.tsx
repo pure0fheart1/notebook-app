@@ -4,7 +4,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import {
   PlusIcon,
-  PencilIcon,
   TrashIcon,
   BookOpenIcon,
   DocumentTextIcon,
@@ -32,7 +31,6 @@ export default function Dashboard() {
     isLoading,
     createNotebook,
     deleteNotebook,
-    updateNotebook,
     isCreating,
     isDeleting,
     maxTitleLength,
@@ -43,7 +41,6 @@ export default function Dashboard() {
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0].value)
   const [selectedIcon, setSelectedIcon] = useState(PRESET_ICONS[0])
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [editingNotebook, setEditingNotebook] = useState<string | null>(null)
 
   const handleCreateNotebook = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -242,22 +239,12 @@ export default function Dashboard() {
                       </h3>
                       <p className="text-sm text-gray-500 flex items-center gap-1">
                         <DocumentTextIcon className="w-4 h-4" />
-                        {notebook.notes_count || 0} notes
+                        0 notes
                       </p>
                     </div>
 
                     {/* Action menu */}
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          setEditingNotebook(notebook.id)
-                        }}
-                        className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
-                        title="Edit notebook"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
                       <button
                         onClick={(e) => {
                           e.preventDefault()

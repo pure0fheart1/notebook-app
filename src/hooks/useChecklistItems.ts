@@ -107,7 +107,7 @@ export function useChecklistItems(noteId?: string) {
       queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
       toast.success('Item added!', { icon: '✅' })
     },
-    onError: (error, { noteId }, context) => {
+    onError: (error, { noteId: _noteId }, context) => {
       if (context?.previousItems) {
         queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
       }
@@ -172,7 +172,7 @@ export function useChecklistItems(noteId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
     },
-    onError: (error, { id }, context) => {
+    onError: (error, { id: _id }, context) => {
       if (context?.previousItems) {
         queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
       }
@@ -207,7 +207,7 @@ export function useChecklistItems(noteId?: string) {
       queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
       toast.success('Item deleted!', { icon: '🗑️' })
     },
-    onError: (error, id, context) => {
+    onError: (error, _id, context) => {
       if (context?.previousItems) {
         queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
       }
@@ -250,11 +250,11 @@ export function useChecklistItems(noteId?: string) {
 
       return { previousItems }
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
       // Subtle feedback, no toast to avoid spam
     },
-    onError: (error, itemId, context) => {
+    onError: (error, _itemId, context) => {
       if (context?.previousItems) {
         queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
       }
@@ -297,7 +297,7 @@ export function useChecklistItems(noteId?: string) {
       queryClient.invalidateQueries({ queryKey: ['checklist_items', noteId] })
       toast.success('Items reordered!', { icon: '↕️' })
     },
-    onError: (error, items, context) => {
+    onError: (error, _items, context) => {
       if (context?.previousItems) {
         queryClient.setQueryData(['checklist_items', noteId], context.previousItems)
       }
