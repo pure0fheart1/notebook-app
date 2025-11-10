@@ -1,19 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/services/supabase'
-import { useAuth } from '@/hooks/useAuth'
 import { useNotes } from '@/hooks/useNotes'
 import toast from 'react-hot-toast'
 import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline'
-
-interface Note {
-  id: string
-  title: string
-  content?: any
-  is_checklist: boolean
-  created_at: string
-  updated_at: string
-}
 
 export default function NotebookView() {
   const { id: notebookId } = useParams<{ id: string }>()

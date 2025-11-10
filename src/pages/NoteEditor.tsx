@@ -2,7 +2,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/services/supabase'
-import { useNotes } from '@/hooks/useNotes'
 import { useChecklistItems } from '@/hooks/useChecklistItems'
 import toast from 'react-hot-toast'
 import {
@@ -67,6 +66,7 @@ export default function NoteEditor() {
   // Auto-save note
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<Note>) => {
+      if (!noteId) throw new Error('Note ID not found')
       const { error } = await supabase
         .from('notes')
         .update(updates)
@@ -75,14 +75,17 @@ export default function NoteEditor() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['note', noteId] })
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
+      if (noteId) {
+        queryClient.invalidateQueries({ queryKey: ['note', noteId] })
+        queryClient.invalidateQueries({ queryKey: ['notes'] })
+      }
     },
   })
 
   // Delete note
   const deleteMutation = useMutation({
     mutationFn: async () => {
+      if (!noteId) throw new Error('Note ID not found')
       const { error } = await supabase
         .from('notes')
         .delete()
@@ -102,7 +105,7 @@ export default function NoteEditor() {
   // Pin/unpin note
   const pinMutation = useMutation({
     mutationFn: async () => {
-      if (!note) return
+      if (!note || !noteId) return
       const { error } = await supabase
         .from('notes')
         .update({ is_pinned: !note.is_pinned })
@@ -111,7 +114,9 @@ export default function NoteEditor() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['note', noteId] })
+      if (noteId) {
+        queryClient.invalidateQueries({ queryKey: ['note', noteId] })
+      }
     },
   })
 
@@ -255,7 +260,7 @@ export default function NoteEditor() {
       ) : (
         <div className="card p-6 space-y-4">
           <div className="space-y-2">
-            {checklistItems.map((item, index) => (
+            {checklistItems.map((item) => (
               <div key={item.id} className="flex items-center gap-3">
                 <button
                   onClick={() => toggleItem(item.id)}

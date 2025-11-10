@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -72,12 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error
 
       // Create profile
-      if (data.user) {
+      if (signUpData.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
-            id: data.user.id,
-            email: data.user.email!,
+            id: signUpData.user.id,
+            email: signUpData.user.email!,
             full_name: fullName || null,
           })
 
