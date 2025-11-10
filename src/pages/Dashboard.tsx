@@ -84,65 +84,82 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in-up">
-      {/* Header with gradient */}
-      <div className="bg-gradient-to-r from-primary-50 to-secondary-50 rounded-2xl p-8 border border-primary-100">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-md">
-            <SparklesIcon className="w-8 h-8 text-white" />
+      {/* Header with glassmorphism */}
+      <div className="card-gradient p-8 border border-purple-500/20 relative overflow-hidden">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-pink-500/10 animate-pulse-subtle" />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl shadow-lg shadow-purple-500/30 relative">
+              <SparklesIcon className="w-8 h-8 text-white" />
+              <div className="absolute inset-0 blur-xl bg-purple-500/40" />
+            </div>
+            <h1 className="text-4xl font-bold text-white">
+              Welcome back, <span className="text-gradient">{user?.email?.split('@')[0]}</span>!
+            </h1>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900">
-            Welcome back, {user?.email?.split('@')[0]}!
-          </h1>
+          <p className="mt-2 text-lg text-gray-300 ml-14">
+            Organize your notes and manage your tasks efficiently
+          </p>
         </div>
-        <p className="mt-2 text-lg text-gray-600 ml-14">
-          Organize your notes and manage your tasks efficiently
-        </p>
       </div>
 
-      {/* Quick stats with icons and gradients */}
+      {/* Quick stats with glassmorphism cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card-gradient p-6 group hover:shadow-medium transition-all duration-300">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-primary-100 rounded-xl group-hover:scale-110 transition-transform duration-300">
-              <BookOpenIcon className="w-6 h-6 text-primary-600" />
+        <div className="card-hover p-6 group border border-purple-500/20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-500/30 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-purple-500/20">
+                <BookOpenIcon className="w-6 h-6 text-purple-400" />
+              </div>
+              <div className="text-4xl font-bold text-gradient">{notebooks.length}</div>
             </div>
-            <div className="text-4xl font-bold text-gradient">{notebooks.length}</div>
+            <div className="text-sm font-medium text-gray-300">Total Notebooks</div>
+            <div className="mt-3 h-1.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full shadow-lg shadow-purple-500/50"></div>
           </div>
-          <div className="text-sm font-medium text-gray-600">Total Notebooks</div>
-          <div className="mt-2 h-1 bg-gradient-to-r from-primary-500 to-primary-300 rounded-full"></div>
         </div>
 
-        <div className="card-gradient p-6 group hover:shadow-medium transition-all duration-300">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-100 rounded-xl group-hover:scale-110 transition-transform duration-300">
-              <DocumentTextIcon className="w-6 h-6 text-blue-600" />
+        <div className="card-hover p-6 group border border-blue-500/20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl border border-blue-500/30 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-blue-500/20">
+                <DocumentTextIcon className="w-6 h-6 text-blue-400" />
+              </div>
+              <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">
+                --
+              </div>
             </div>
-            <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">
-              --
-            </div>
+            <div className="text-sm font-medium text-gray-300">Notes Created</div>
+            <div className="mt-3 h-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full shadow-lg shadow-blue-500/50"></div>
           </div>
-          <div className="text-sm font-medium text-gray-600">Notes Created</div>
-          <div className="mt-2 h-1 bg-gradient-to-r from-blue-500 to-blue-300 rounded-full"></div>
         </div>
 
-        <div className="card-gradient p-6 group hover:shadow-medium transition-all duration-300">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-success-100 rounded-xl group-hover:scale-110 transition-transform duration-300">
-              <CheckCircleIcon className="w-6 h-6 text-success-600" />
+        <div className="card-hover p-6 group border border-green-500/20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl border border-green-500/30 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-green-500/20">
+                <CheckCircleIcon className="w-6 h-6 text-green-400" />
+              </div>
+              <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-400">
+                --
+              </div>
             </div>
-            <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-success-600 to-success-400">
-              --
-            </div>
+            <div className="text-sm font-medium text-gray-300">Tasks Completed</div>
+            <div className="mt-3 h-1.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full shadow-lg shadow-green-500/50"></div>
           </div>
-          <div className="text-sm font-medium text-gray-600">Tasks Completed</div>
-          <div className="mt-2 h-1 bg-gradient-to-r from-success-500 to-success-300 rounded-full"></div>
         </div>
       </div>
 
       {/* Notebooks Section */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Your Notebooks</h2>
+          <h2 className="text-2xl font-bold text-white">
+            Your <span className="text-gradient">Notebooks</span>
+          </h2>
           <button
             onClick={() => setShowCreateModal(true)}
             className="btn-primary"
@@ -174,10 +191,10 @@ export default function Dashboard() {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              <h3 className="text-2xl font-bold text-white mb-3">
                 No notebooks yet
               </h3>
-              <p className="text-gray-600 mb-6 text-lg">
+              <p className="text-gray-300 mb-6 text-lg">
                 Create your first notebook to start organizing your notes and ideas
               </p>
               <button
@@ -189,21 +206,21 @@ export default function Dashboard() {
               </button>
 
               {/* Tips */}
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">
+              <div className="mt-8 pt-8 border-t border-white/10">
+                <h4 className="text-sm font-semibold text-white mb-3">
                   💡 Quick Tips:
                 </h4>
-                <ul className="text-sm text-gray-600 space-y-2 text-left">
+                <ul className="text-sm text-gray-300 space-y-2 text-left">
                   <li className="flex items-start gap-2">
-                    <span className="text-primary-500 mt-0.5">•</span>
+                    <span className="text-purple-400 mt-0.5">•</span>
                     <span>Create notebooks for different areas of your life</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-primary-500 mt-0.5">•</span>
+                    <span className="text-purple-400 mt-0.5">•</span>
                     <span>Customize with colors and icons</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-primary-500 mt-0.5">•</span>
+                    <span className="text-purple-400 mt-0.5">•</span>
                     <span>Add notes and checklists to each notebook</span>
                   </li>
                 </ul>
@@ -216,28 +233,36 @@ export default function Dashboard() {
               <Link
                 key={notebook.id}
                 to={`/notebook/${notebook.id}`}
-                className="card-hover group p-6 relative overflow-hidden"
+                className="card-hover group p-6 relative overflow-hidden border border-white/10"
               >
-                {/* Background gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-secondary-50 to-primary-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                {/* Background gradient on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{
+                  background: `linear-gradient(135deg, ${notebook.color || '#8b5cf6'}20 0%, transparent 100%)`
+                }} />
 
-                <div className="relative">
+                <div className="relative z-10">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      {/* Icon with color */}
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-md text-2xl"
-                        style={{
-                          backgroundColor: notebook.color || '#4f46e5',
-                        }}
-                      >
-                        {notebook.icon || '📓'}
+                      {/* Icon with color and glow */}
+                      <div className="relative mb-4">
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg text-2xl"
+                          style={{
+                            backgroundColor: notebook.color || '#8b5cf6',
+                            boxShadow: `0 8px 24px ${notebook.color || '#8b5cf6'}40`
+                          }}
+                        >
+                          {notebook.icon || '📓'}
+                        </div>
+                        <div className="absolute inset-0 blur-xl opacity-0 group-hover:opacity-60 transition-opacity" style={{
+                          background: notebook.color || '#8b5cf6'
+                        }} />
                       </div>
 
-                      <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors mb-2">
+                      <h3 className="text-xl font-bold text-white group-hover:text-gradient transition-colors mb-2">
                         {notebook.title}
                       </h3>
-                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <p className="text-sm text-gray-400 flex items-center gap-1">
                         <DocumentTextIcon className="w-4 h-4" />
                         0 notes
                       </p>
@@ -250,7 +275,7 @@ export default function Dashboard() {
                           e.preventDefault()
                           setDeleteConfirm(notebook.id)
                         }}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all border border-transparent hover:border-red-500/30"
                         title="Delete notebook"
                       >
                         <TrashIcon className="w-4 h-4" />
@@ -258,10 +283,10 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-200 group-hover:border-primary-200 transition-colors">
-                    <p className="text-xs text-gray-500 flex items-center justify-between">
+                  <div className="pt-4 border-t border-white/10 group-hover:border-purple-500/30 transition-colors">
+                    <p className="text-xs text-gray-400 flex items-center justify-between">
                       <span>Created {new Date(notebook.created_at).toLocaleDateString()}</span>
-                      <span className="text-primary-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-purple-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                         Open →
                       </span>
                     </p>
@@ -280,12 +305,12 @@ export default function Dashboard() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="modal-content w-full max-w-md p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Create New Notebook
+                <h2 className="text-2xl font-bold text-white">
+                  Create <span className="text-gradient">New Notebook</span>
                 </h2>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                 >
                   <XMarkIcon className="w-5 h-5" />
                 </button>
@@ -293,7 +318,7 @@ export default function Dashboard() {
 
               <form onSubmit={handleCreateNotebook} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Notebook Title
                   </label>
                   <input
@@ -305,14 +330,14 @@ export default function Dashboard() {
                     autoFocus
                     maxLength={maxTitleLength}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-400 mt-1">
                     {newNotebookTitle.length}/{maxTitleLength} characters
                   </p>
                 </div>
 
                 {/* Color Picker */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Choose Color
                   </label>
                   <div className="grid grid-cols-6 gap-2">
@@ -321,12 +346,15 @@ export default function Dashboard() {
                         key={color.value}
                         type="button"
                         onClick={() => setSelectedColor(color.value)}
-                        className={`w-full aspect-square rounded-lg transition-all ${
+                        className={`w-full aspect-square rounded-lg transition-all border-2 ${
                           selectedColor === color.value
-                            ? 'ring-2 ring-offset-2 ring-primary-500 scale-110'
-                            : 'hover:scale-110'
+                            ? 'border-white scale-110 shadow-lg'
+                            : 'border-transparent hover:scale-110'
                         }`}
-                        style={{ backgroundColor: color.value }}
+                        style={{
+                          backgroundColor: color.value,
+                          boxShadow: selectedColor === color.value ? `0 8px 20px ${color.value}60` : 'none'
+                        }}
                         title={color.name}
                       />
                     ))}
@@ -335,7 +363,7 @@ export default function Dashboard() {
 
                 {/* Icon Picker */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Choose Icon
                   </label>
                   <div className="grid grid-cols-5 gap-2">
@@ -344,10 +372,10 @@ export default function Dashboard() {
                         key={icon}
                         type="button"
                         onClick={() => setSelectedIcon(icon)}
-                        className={`text-2xl p-3 rounded-lg transition-all ${
+                        className={`text-2xl p-3 rounded-lg transition-all border ${
                           selectedIcon === icon
-                            ? 'bg-primary-100 ring-2 ring-primary-500'
-                            : 'hover:bg-gray-100'
+                            ? 'bg-purple-500/20 border-purple-500/30 ring-2 ring-purple-500/50'
+                            : 'bg-white/5 border-white/10 hover:bg-white/10'
                         }`}
                       >
                         {icon}
@@ -357,20 +385,23 @@ export default function Dashboard() {
                 </div>
 
                 {/* Preview */}
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-xs font-medium text-gray-600 mb-2">Preview:</p>
+                <div className="p-4 glass rounded-lg border border-white/10">
+                  <p className="text-xs font-medium text-gray-300 mb-2">Preview:</p>
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-xl shadow-sm"
-                      style={{ backgroundColor: selectedColor }}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-xl shadow-lg"
+                      style={{
+                        backgroundColor: selectedColor,
+                        boxShadow: `0 8px 20px ${selectedColor}60`
+                      }}
                     >
                       {selectedIcon}
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-gray-900">
+                      <div className="font-semibold text-white">
                         {newNotebookTitle || 'Untitled Notebook'}
                       </div>
-                      <div className="text-xs text-gray-500">0 notes</div>
+                      <div className="text-xs text-gray-400">0 notes</div>
                     </div>
                   </div>
                 </div>

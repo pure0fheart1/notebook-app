@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '@/services/supabase'
 import { useChecklistItems } from '@/hooks/useChecklistItems'
+import { useChecklistSubtasksForItems } from '@/hooks/useChecklistSubtasks'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import toast from 'react-hot-toast'
 import {
@@ -14,6 +15,8 @@ import {
   CheckIcon,
   PlusIcon,
   XMarkIcon,
+  ChevronRightIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline'
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
@@ -44,6 +47,10 @@ export default function NoteEditor() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [addItemModalOpen, setAddItemModalOpen] = useState(false)
   const [newItemText, setNewItemText] = useState('')
+  const [addSubtaskModalOpen, setAddSubtaskModalOpen] = useState(false)
+  const [newSubtaskText, setNewSubtaskText] = useState('')
+  const [selectedParentItemId, setSelectedParentItemId] = useState<string | null>(null)
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
 
   const isNewNote = noteId === 'new'
   const notebookId = searchParams.get('notebookId')
@@ -69,6 +76,10 @@ export default function NoteEditor() {
 
   const { items: checklistItems, addItem, toggleItem, deleteItem, isAdding } =
     useChecklistItems(isNewNote ? undefined : noteId)
+
+  // Fetch subtasks for all checklist items
+  const itemIds = checklistItems.map((item) => item.id)
+  const { subtasksByItem } = useChecklistSubtasksForItems(itemIds)
 
   // Initialize form with note data
   useEffect(() => {
@@ -253,6 +264,99 @@ export default function NoteEditor() {
     }
   }
 
+  // Handle add subtask
+  const handleAddSubtask = async () => {
+    if (!newSubtaskText.trim()) {
+      toast.error('Please enter subtask text')
+      return
+    }
+
+    if (!selectedParentItemId) {
+      toast.error('No parent item selected')
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('checklist_subtasks')
+        .insert({
+          item_id: selectedParentItemId,
+          text: newSubtaskText.trim(),
+          checked: false,
+          order_index: (subtasksByItem[selectedParentItemId]?.length || 0),
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      queryClient.invalidateQueries({ queryKey: ['checklist_subtasks_bulk'] })
+      toast.success('Sub-task added!', { icon: '✅' })
+
+      // Expand the parent item to show the new subtask
+      setExpandedItems((prev) => new Set(prev).add(selectedParentItemId))
+
+      setAddSubtaskModalOpen(false)
+      setNewSubtaskText('')
+      setSelectedParentItemId(null)
+    } catch (error) {
+      console.error('Error adding subtask:', error)
+      toast.error('Failed to add sub-task')
+    }
+  }
+
+  // Handle toggle subtask
+  const handleToggleSubtask = async (subtaskId: string, itemId: string) => {
+    const subtasks = subtasksByItem[itemId] || []
+    const subtask = subtasks.find((s) => s.id === subtaskId)
+    if (!subtask) return
+
+    try {
+      const { error } = await supabase
+        .from('checklist_subtasks')
+        .update({ checked: !subtask.checked })
+        .eq('id', subtaskId)
+
+      if (error) throw error
+
+      queryClient.invalidateQueries({ queryKey: ['checklist_subtasks_bulk'] })
+    } catch (error) {
+      console.error('Error toggling subtask:', error)
+      toast.error('Failed to toggle sub-task')
+    }
+  }
+
+  // Handle delete subtask
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('checklist_subtasks')
+        .delete()
+        .eq('id', subtaskId)
+
+      if (error) throw error
+
+      queryClient.invalidateQueries({ queryKey: ['checklist_subtasks_bulk'] })
+      toast.success('Sub-task deleted!', { icon: '🗑️' })
+    } catch (error) {
+      console.error('Error deleting subtask:', error)
+      toast.error('Failed to delete sub-task')
+    }
+  }
+
+  // Toggle item expansion
+  const toggleItemExpansion = (itemId: string) => {
+    setExpandedItems((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+      } else {
+        newSet.add(itemId)
+      }
+      return newSet
+    })
+  }
+
   // Calculate stats
   const wordCount = useMemo(() => {
     if (isChecklist) return 0
@@ -267,9 +371,23 @@ export default function NoteEditor() {
 
   const checklistProgress = useMemo(() => {
     if (!isChecklist || checklistItems.length === 0) return 0
-    const completed = checklistItems.filter((item) => item.checked).length
-    return Math.round((completed / checklistItems.length) * 100)
-  }, [isChecklist, checklistItems])
+
+    // Calculate total items including subtasks
+    let totalItems = 0
+    let completedItems = 0
+
+    checklistItems.forEach((item) => {
+      totalItems += 1
+      if (item.checked) completedItems += 1
+
+      // Add subtasks to the count
+      const subtasks = subtasksByItem[item.id] || []
+      totalItems += subtasks.length
+      completedItems += subtasks.filter((s) => s.checked).length
+    })
+
+    return totalItems === 0 ? 0 : Math.round((completedItems / totalItems) * 100)
+  }, [isChecklist, checklistItems, subtasksByItem])
 
   // Loading skeleton
   if (isLoading) {
@@ -408,8 +526,15 @@ export default function NoteEditor() {
               <div>
                 <p className="text-xs text-gray-600">Progress</p>
                 <p className="text-sm font-semibold text-gray-900">
-                  {checklistItems.filter((i) => i.checked).length}/
-                  {checklistItems.length}
+                  {(() => {
+                    let total = checklistItems.length
+                    let completed = checklistItems.filter((i) => i.checked).length
+                    Object.values(subtasksByItem).forEach((subtasks) => {
+                      total += subtasks.length
+                      completed += subtasks.filter((s) => s.checked).length
+                    })
+                    return `${completed}/${total}`
+                  })()}
                 </p>
               </div>
             </div>
@@ -510,57 +635,152 @@ export default function NoteEditor() {
           ) : (
             // Checklist items
             <>
-              <div className="space-y-2">
-                {checklistItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    {/* Checkbox */}
-                    <button
-                      onClick={() => toggleItem(item.id)}
-                      className={`flex-shrink-0 w-6 h-6 mt-0.5 rounded border-2 transition-all duration-200 ${
-                        item.checked
-                          ? 'bg-success-500 border-success-500 scale-110'
-                          : 'border-gray-300 hover:border-success-500 hover:scale-110'
-                      }`}
-                    >
-                      {item.checked && (
-                        <svg
-                          className="w-4 h-4 text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
+              <div className="space-y-1">
+                {checklistItems.map((item) => {
+                  const itemSubtasks = subtasksByItem[item.id] || []
+                  const hasSubtasks = itemSubtasks.length > 0
+                  const isExpanded = expandedItems.has(item.id)
+
+                  return (
+                    <div key={item.id} className="space-y-1">
+                      {/* Main Item */}
+                      <div className="group flex items-start gap-2 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                        {/* Expand/Collapse Button */}
+                        {hasSubtasks ? (
+                          <button
+                            onClick={() => toggleItemExpansion(item.id)}
+                            className="flex-shrink-0 w-5 h-5 mt-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                            title={isExpanded ? 'Collapse' : 'Expand'}
+                          >
+                            {isExpanded ? (
+                              <ChevronDownIcon className="w-5 h-5" />
+                            ) : (
+                              <ChevronRightIcon className="w-5 h-5" />
+                            )}
+                          </button>
+                        ) : (
+                          <div className="w-5 h-5" />
+                        )}
+
+                        {/* Checkbox */}
+                        <button
+                          onClick={() => toggleItem(item.id)}
+                          className={`flex-shrink-0 w-6 h-6 mt-0.5 rounded border-2 transition-all duration-200 ${
+                            item.checked
+                              ? 'bg-success-500 border-success-500 scale-110'
+                              : 'border-gray-300 hover:border-success-500 hover:scale-110'
+                          }`}
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                          {item.checked && (
+                            <svg
+                              className="w-4 h-4 text-white"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </button>
+
+                        {/* Item Text */}
+                        <span
+                          className={`flex-1 text-lg transition-all ${
+                            item.checked ? 'line-through text-gray-400' : 'text-gray-900'
+                          }`}
+                        >
+                          {item.text}
+                          {hasSubtasks && (
+                            <span className="ml-2 text-xs text-gray-500 font-medium">
+                              ({itemSubtasks.filter((s) => s.checked).length}/
+                              {itemSubtasks.length})
+                            </span>
+                          )}
+                        </span>
+
+                        {/* Action Buttons (show on hover) */}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => {
+                              setSelectedParentItemId(item.id)
+                              setAddSubtaskModalOpen(true)
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-success-600 hover:bg-success-50 rounded-lg transition-all"
+                            title="Add sub-task"
+                          >
+                            <PlusIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteItem(item.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Delete item"
+                          >
+                            <TrashIcon className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Subtasks (indented) */}
+                      {hasSubtasks && isExpanded && (
+                        <div className="ml-12 space-y-1">
+                          {itemSubtasks.map((subtask) => (
+                            <div
+                              key={subtask.id}
+                              className="group flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              {/* Subtask Checkbox */}
+                              <button
+                                onClick={() => handleToggleSubtask(subtask.id, item.id)}
+                                className={`flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 transition-all duration-200 ${
+                                  subtask.checked
+                                    ? 'bg-success-500 border-success-500 scale-110'
+                                    : 'border-gray-300 hover:border-success-500 hover:scale-110'
+                                }`}
+                              >
+                                {subtask.checked && (
+                                  <svg
+                                    className="w-3 h-3 text-white"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                )}
+                              </button>
+
+                              {/* Subtask Text */}
+                              <span
+                                className={`flex-1 text-base transition-all ${
+                                  subtask.checked
+                                    ? 'line-through text-gray-400'
+                                    : 'text-gray-700'
+                                }`}
+                              >
+                                {subtask.text}
+                              </span>
+
+                              {/* Delete Subtask Button */}
+                              <button
+                                onClick={() => handleDeleteSubtask(subtask.id)}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="Delete sub-task"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       )}
-                    </button>
-
-                    {/* Item Text */}
-                    <span
-                      className={`flex-1 text-lg transition-all ${
-                        item.checked
-                          ? 'line-through text-gray-400'
-                          : 'text-gray-900'
-                      }`}
-                    >
-                      {item.text}
-                    </span>
-
-                    {/* Delete Button (shows on hover) */}
-                    <button
-                      onClick={() => deleteItem(item.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                      title="Delete item"
-                    >
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
+                    </div>
+                  )
+                })}
               </div>
 
               {/* Add Item Button */}
@@ -668,6 +888,85 @@ export default function NoteEditor() {
                         Add Item
                       </>
                     )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Add Subtask Modal */}
+      {addSubtaskModalOpen && (
+        <>
+          <div
+            className="modal-overlay"
+            onClick={() => {
+              setAddSubtaskModalOpen(false)
+              setNewSubtaskText('')
+              setSelectedParentItemId(null)
+            }}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="modal-content w-full max-w-md p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <PlusIcon className="w-6 h-6 text-success-600" />
+                  Add Sub-task
+                </h3>
+                <button
+                  onClick={() => {
+                    setAddSubtaskModalOpen(false)
+                    setNewSubtaskText('')
+                    setSelectedParentItemId(null)
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-6 h-6 text-gray-600" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Sub-task Text
+                  </label>
+                  <textarea
+                    value={newSubtaskText}
+                    onChange={(e) => setNewSubtaskText(e.target.value)}
+                    placeholder="Enter sub-task text..."
+                    className="input resize-none h-24"
+                    maxLength={500}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                        handleAddSubtask()
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {newSubtaskText.length}/500 characters
+                  </p>
+                </div>
+
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setAddSubtaskModalOpen(false)
+                      setNewSubtaskText('')
+                      setSelectedParentItemId(null)
+                    }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddSubtask}
+                    disabled={!newSubtaskText.trim()}
+                    className="btn-primary"
+                  >
+                    <PlusIcon className="w-5 h-5" />
+                    Add Sub-task
                   </button>
                 </div>
               </div>

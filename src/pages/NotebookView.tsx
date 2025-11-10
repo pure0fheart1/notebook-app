@@ -115,12 +115,12 @@ export default function NotebookView() {
   if (!notebook) {
     return (
       <div className="min-h-screen flex items-center justify-center animate-fade-in">
-        <div className="text-center p-8">
-          <div className="w-20 h-20 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
-            <BookOpenIcon className="w-10 h-10 text-red-600" />
+        <div className="text-center p-8 card max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-red-500/20 to-red-600/20 border border-red-500/30 rounded-full flex items-center justify-center">
+            <BookOpenIcon className="w-10 h-10 text-red-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">Notebook not found</h3>
-          <p className="text-gray-600 mb-6">
+          <h3 className="text-2xl font-bold text-white mb-2">Notebook not found</h3>
+          <p className="text-gray-300 mb-6">
             This notebook doesn't exist or you don't have access to it.
           </p>
           <button onClick={() => navigate('/dashboard')} className="btn-primary">
@@ -149,24 +149,30 @@ export default function NotebookView() {
           <div className="flex items-start gap-4">
             <button
               onClick={() => navigate('/dashboard')}
-              className="p-2.5 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 mt-1"
+              className="p-2.5 hover:bg-white/10 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 mt-1"
               title="Back to Dashboard"
             >
-              <ArrowLeftIcon className="w-6 h-6 text-gray-600" />
+              <ArrowLeftIcon className="w-6 h-6 text-gray-300" />
             </button>
 
             {/* Notebook Icon and Title */}
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl shadow-soft transition-transform duration-200 hover:scale-110"
-                  style={{ backgroundColor: notebookColor }}
-                >
-                  {notebookIcon}
+                <div className="relative">
+                  <div
+                    className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl shadow-soft transition-transform duration-200 hover:scale-110"
+                    style={{
+                      backgroundColor: notebookColor,
+                      boxShadow: `0 8px 24px ${notebookColor}40`
+                    }}
+                  >
+                    {notebookIcon}
+                  </div>
+                  <div className="absolute inset-0 blur-xl opacity-50" style={{ background: notebookColor }} />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-1">{notebook.title}</h1>
-                  <p className="text-sm text-gray-600 flex items-center gap-1">
+                  <h1 className="text-3xl font-bold text-white mb-1">{notebook.title}</h1>
+                  <p className="text-sm text-gray-300 flex items-center gap-1">
                     <DocumentTextIcon className="w-4 h-4" />
                     {totalNotes} {totalNotes === 1 ? 'note' : 'notes'}
                     {pinnedCount > 0 && (
@@ -205,44 +211,44 @@ export default function NotebookView() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Notes */}
-        <div className="card-hover p-4 group">
+        <div className="card-hover p-4 group border border-purple-500/20">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-soft group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform">
               <DocumentTextIcon className="w-6 h-6 text-white" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gradient">{totalNotes}</p>
-              <p className="text-sm text-gray-600">Total Notes</p>
+              <p className="text-sm text-gray-300">Total Notes</p>
             </div>
           </div>
         </div>
 
         {/* Checklists */}
-        <div className="card-hover p-4 group">
+        <div className="card-hover p-4 group border border-green-500/20">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-success-500 to-success-600 flex items-center justify-center shadow-soft group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform">
               <CheckCircleIcon className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-2xl font-bold bg-gradient-to-r from-success-600 to-success-700 bg-clip-text text-transparent">
+              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                 {checklistCount}
               </p>
-              <p className="text-sm text-gray-600">Checklists</p>
+              <p className="text-sm text-gray-300">Checklists</p>
             </div>
           </div>
         </div>
 
         {/* Pinned */}
-        <div className="card-hover p-4 group">
+        <div className="card-hover p-4 group border border-pink-500/20">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary-500 to-secondary-600 flex items-center justify-center shadow-soft group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform">
               <span className="text-2xl">📌</span>
             </div>
             <div>
-              <p className="text-2xl font-bold bg-gradient-to-r from-secondary-600 to-secondary-700 bg-clip-text text-transparent">
+              <p className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent">
                 {pinnedCount}
               </p>
-              <p className="text-sm text-gray-600">Pinned</p>
+              <p className="text-sm text-gray-300">Pinned</p>
             </div>
           </div>
         </div>
@@ -271,16 +277,16 @@ export default function NotebookView() {
           <div className="max-w-md mx-auto">
             {/* Animated Illustration */}
             <div className="mb-6 relative">
-              <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary-100 to-secondary-100 rounded-full flex items-center justify-center animate-bounce-subtle">
-                <PencilSquareSolidIcon className="w-12 h-12 text-primary-600" />
+              <div className="w-24 h-24 mx-auto bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-full flex items-center justify-center animate-bounce-subtle shadow-lg shadow-purple-500/30">
+                <PencilSquareSolidIcon className="w-12 h-12 text-purple-400" />
               </div>
-              <div className="absolute top-0 right-1/4 w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center animate-pulse">
+              <div className="absolute top-0 right-1/4 w-8 h-8 bg-gradient-to-br from-yellow-400/30 to-orange-400/30 border border-yellow-400/40 rounded-full flex items-center justify-center animate-pulse">
                 ✨
               </div>
             </div>
 
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">No notes yet</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 className="text-2xl font-bold text-white mb-2">No notes yet</h3>
+            <p className="text-gray-300 mb-6">
               Start capturing your ideas, thoughts, and tasks in this notebook
             </p>
 
@@ -297,25 +303,25 @@ export default function NotebookView() {
             </div>
 
             {/* Tips */}
-            <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 text-left">
-              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <div className="glass rounded-xl p-6 text-left border border-white/10">
+              <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
                 💡 Quick Tips
               </h4>
-              <ul className="space-y-2 text-sm text-gray-700">
+              <ul className="space-y-2 text-sm text-gray-300">
                 <li className="flex items-start gap-2">
-                  <span className="text-primary-600 font-bold">•</span>
+                  <span className="text-purple-400 font-bold">•</span>
                   <span>
-                    Use <strong>Notes</strong> for rich text content with formatting
+                    Use <strong className="text-white">Notes</strong> for rich text content with formatting
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-success-600 font-bold">•</span>
+                  <span className="text-green-400 font-bold">•</span>
                   <span>
-                    Use <strong>Checklists</strong> for to-do lists and task tracking
+                    Use <strong className="text-white">Checklists</strong> for to-do lists and task tracking
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-secondary-600 font-bold">•</span>
+                  <span className="text-pink-400 font-bold">•</span>
                   <span>
                     Pin important notes to keep them at the top
                   </span>
@@ -344,32 +350,32 @@ export default function NotebookView() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     {/* Title */}
-                    <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors text-lg mb-2 flex items-center gap-2">
+                    <h3 className="font-semibold text-white group-hover:text-gradient transition-colors text-lg mb-2 flex items-center gap-2">
                       {note.is_checklist ? (
-                        <CheckCircleIcon className="w-5 h-5 text-success-600 flex-shrink-0" />
+                        <CheckCircleIcon className="w-5 h-5 text-green-400 flex-shrink-0" />
                       ) : (
-                        <DocumentTextIcon className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                        <DocumentTextIcon className="w-5 h-5 text-purple-400 flex-shrink-0" />
                       )}
                       <span className="truncate">{note.title || 'Untitled'}</span>
                     </h3>
 
                     {/* Content Preview */}
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                    <p className="text-sm text-gray-300 line-clamp-2 mb-3">
                       {typeof note.content === 'string'
                         ? note.content.replace(/<[^>]*>/g, '').trim() || 'Empty note'
                         : 'Click to view checklist'}
                     </p>
 
                     {/* Metadata */}
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-xs text-gray-400">
                       <span className="flex items-center gap-1">
                         🕐 {new Date(note.updated_at).toLocaleDateString()}
                       </span>
                       <span
-                        className={`px-2 py-1 rounded-full font-medium ${
+                        className={`px-2 py-1 rounded-full font-medium border ${
                           note.is_checklist
-                            ? 'bg-success-50 text-success-700'
-                            : 'bg-primary-50 text-primary-700'
+                            ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                            : 'bg-purple-500/10 text-purple-400 border-purple-500/30'
                         }`}
                       >
                         {note.is_checklist ? '✓ Checklist' : '📝 Note'}
@@ -382,10 +388,10 @@ export default function NotebookView() {
                     <button
                       onClick={(e) => handlePinNote(e, note.id)}
                       disabled={isPinning}
-                      className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 ${
+                      className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 border ${
                         note.is_pinned
-                          ? 'bg-secondary-100 text-secondary-600'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-pink-500/10 text-pink-400 border-pink-500/30'
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10 border-white/10'
                       }`}
                       title={note.is_pinned ? 'Unpin note' : 'Pin note'}
                     >
@@ -397,7 +403,7 @@ export default function NotebookView() {
                         e.stopPropagation()
                         navigate(`/note/${note.id}`)
                       }}
-                      className="p-2 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-200 transition-all duration-200 hover:scale-110"
+                      className="p-2 bg-purple-500/10 text-purple-400 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-all duration-200 hover:scale-110"
                       title="Edit note"
                     >
                       <PencilSquareIcon className="w-5 h-5" />
@@ -409,7 +415,7 @@ export default function NotebookView() {
                         handleDeleteClick(note.id)
                       }}
                       disabled={isDeleting}
-                      className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all duration-200 hover:scale-110"
+                      className="p-2 bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/20 transition-all duration-200 hover:scale-110"
                       title="Delete note"
                     >
                       <TrashIcon className="w-5 h-5" />
@@ -418,7 +424,7 @@ export default function NotebookView() {
                 </div>
 
                 {/* Hover indicator */}
-                <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-sm text-primary-600 font-medium">
+                <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-sm text-purple-400 font-medium">
                   Open →
                 </div>
               </Link>
