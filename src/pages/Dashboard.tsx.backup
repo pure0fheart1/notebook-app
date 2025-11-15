@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNotebooks } from '@/hooks/useNotebooks'
 import { useAuth } from '@/hooks/useAuth'
-import { useStatistics } from '@/hooks/useStatistics'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import {
   PlusIcon,
@@ -36,7 +35,6 @@ export default function Dashboard() {
     isDeleting,
     maxTitleLength,
   } = useNotebooks()
-  const { statistics, isLoading: statsLoading } = useStatistics()
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newNotebookTitle, setNewNotebookTitle] = useState('')
@@ -68,16 +66,16 @@ export default function Dashboard() {
   const LoadingSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="card p-6 animate-pulse border border-white/10">
+        <div key={i} className="card p-6 animate-pulse">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <div className="w-12 h-12 bg-white/10 rounded-xl mb-4"></div>
-              <div className="h-6 bg-white/10 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-white/10 rounded w-1/2"></div>
+              <div className="w-12 h-12 bg-gray-200 rounded-xl mb-4"></div>
+              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
             </div>
           </div>
-          <div className="pt-4 border-t border-white/10">
-            <div className="h-3 bg-white/10 rounded w-1/3"></div>
+          <div className="pt-4 border-t border-gray-200">
+            <div className="h-3 bg-gray-200 rounded w-1/3"></div>
           </div>
         </div>
       ))}
@@ -116,9 +114,7 @@ export default function Dashboard() {
               <div className="p-3 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-500/30 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-purple-500/20">
                 <BookOpenIcon className="w-6 h-6 text-purple-400" />
               </div>
-              <div className="text-4xl font-bold text-gradient">
-                {statsLoading ? '...' : statistics.totalNotebooks}
-              </div>
+              <div className="text-4xl font-bold text-gradient">{notebooks.length}</div>
             </div>
             <div className="text-sm font-medium text-gray-300">Total Notebooks</div>
             <div className="mt-3 h-1.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full shadow-lg shadow-purple-500/50"></div>
@@ -133,7 +129,7 @@ export default function Dashboard() {
                 <DocumentTextIcon className="w-6 h-6 text-blue-400" />
               </div>
               <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">
-                {statsLoading ? '...' : statistics.totalNotes}
+                --
               </div>
             </div>
             <div className="text-sm font-medium text-gray-300">Notes Created</div>
@@ -149,23 +145,11 @@ export default function Dashboard() {
                 <CheckCircleIcon className="w-6 h-6 text-green-400" />
               </div>
               <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-400">
-                {statsLoading ? '...' : statistics.completedTasks}
+                --
               </div>
             </div>
-            <div className="text-sm font-medium text-gray-300">
-              Tasks Completed
-              {!statsLoading && statistics.totalTasks > 0 && (
-                <span className="text-gray-500 ml-1">
-                  ({statistics.completionRate}%)
-                </span>
-              )}
-            </div>
-            <div className="mt-3 h-1.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full overflow-hidden relative">
-              <div
-                className="h-full bg-gradient-to-r from-green-400 to-emerald-400 transition-all duration-500 shadow-lg shadow-green-500/50"
-                style={{ width: `${statistics.completionRate}%` }}
-              />
-            </div>
+            <div className="text-sm font-medium text-gray-300">Tasks Completed</div>
+            <div className="mt-3 h-1.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full shadow-lg shadow-green-500/50"></div>
           </div>
         </div>
       </div>
